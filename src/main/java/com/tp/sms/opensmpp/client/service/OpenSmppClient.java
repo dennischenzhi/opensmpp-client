@@ -93,16 +93,17 @@ public class OpenSmppClient {
 
 
         Session session = InitConnection();
-        SubmitSM request = new SubmitSM();
+        DeliverSM request = new DeliverSM();
         request.setSourceAddr((byte) 5,(byte)0,oa);
         request.setDestAddr((byte) 1,(byte)1,da);
         request.setShortMessage(content);
+        request.setRegisteredDelivery((byte)1);
 
-        SubmitSMResp submitSMResp = session.submit(request);
+        DeliverSMResp submitSMResp = session.deliver(request);
 
         System.out.println("submitSMResp messageId: "+submitSMResp.getMessageId());
         System.out.println("submitSMResp debug: "+submitSMResp.debugString());
-        PDU pdu = session.receive(300000);
+        PDU pdu = session.receive();
 
         if(pdu instanceof DeliverSM){
             DeliverSM received = (DeliverSM) pdu;
@@ -116,6 +117,7 @@ public class OpenSmppClient {
                 int MSG_STATUS = received.getMessageState();
             }
         }else{
+
             System.out.println("----------------- FF pdu: " +pdu.debugString());
         }
 

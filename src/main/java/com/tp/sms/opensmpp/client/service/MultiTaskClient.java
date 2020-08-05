@@ -1,5 +1,7 @@
 package com.tp.sms.opensmpp.client.service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.smpp.*;
 import org.smpp.pdu.*;
 
@@ -11,7 +13,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class MultiTaskClient {
-
+    private static final Logger LOGGER = LoggerFactory.getLogger(MultiTaskClient.class);
+    
     static BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
     private String systemId = "cloudsmpp";
     private String password = "cloud123";
@@ -45,20 +48,20 @@ public class MultiTaskClient {
                     new TCPIPConnection(host, port);
             //connection.setReceiveTimeout(BIND_TIMEOUT);
             session = new Session(connection);
-            System.out.println("Send bind request..."+request.debugString());
+            LOGGER.info("Send bind request..."+request.debugString());
             BindResponse response = session.bind(request);
 
             if (response.getCommandStatus() == Data.ESME_ROK) {
-                System.out.println("Bind Succ ");
+                LOGGER.info("Bind Succ ");
             } else {
-                System.out.println("Bind failed, code " + response.getCommandStatus());
+                LOGGER.info("Bind failed, code " + response.getCommandStatus());
             }
-            System.out.println("Bind response " + response.debugString());
-            System.out.println("Bind response body "+response.getBody().toString());
-            //System.out.println("Bind response system Id "+response.getSystemId());
+            LOGGER.info("Bind response " + response.debugString());
+            LOGGER.info("Bind response body "+response.getBody().toString());
+            //LOGGER.info("Bind response system Id "+response.getSystemId());
         } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-            System.out.println(ex.toString());
+            LOGGER.info(ex.getMessage());
+            LOGGER.info(ex.toString());
         }
 
         return session;
@@ -72,7 +75,7 @@ public class MultiTaskClient {
         try {
             value = keyboard.readLine();
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            LOGGER.info(e.getMessage());
             //event.write(e, "");
             //debug.write("Got exception getting a param. " + e);
         }
@@ -108,24 +111,9 @@ public class MultiTaskClient {
 
         SubmitSMResp submitSMResp = session.submit(request);
 
-        System.out.println("submitSMResp messageId: " + submitSMResp.getMessageId());
-        System.out.println("submitSMResp debug: " + submitSMResp.debugString());
-        PDU pdu = session.receive(300000);
+        LOGGER.info("submitSMResp messageId: " + submitSMResp.getMessageId());
+        LOGGER.info("submitSMResp debug: " + submitSMResp.debugString());
 
-        if (pdu instanceof DeliverSM) {
-            DeliverSM received = (DeliverSM) pdu;
-            if (received.getEsmClass() == 0) {                                                          // new message
-                System.out.println("RECEIVE NEW MESSAGE:" + received.debugString());
-                String MSG_SENDER = received.getSourceAddr().getAddress();
-                String SHORT_MSG = received.getShortMessage();
-            } else {                                                                                    // delivry Repport
-                System.out.println("RECEIVE NEW DELIVERED REPORT:" + received.debugString());
-                String MSG_ID = (new BigInteger(received.getReceiptedMessageId(), 16)) + "";
-                int MSG_STATUS = received.getMessageState();
-            }
-        } else {
-            System.out.println("----------------- FF pdu: " + pdu.debugString());
-        }
 
         if (session != null)
             session.close();
