@@ -1,6 +1,8 @@
 package com.tp.sms.opensmpp.client;
 
+import com.tp.sms.opensmpp.client.service.MultiTaskClient;
 import com.tp.sms.opensmpp.client.service.OpenSmppClient;
+import org.smpp.NotSynchronousException;
 import org.smpp.TimeoutException;
 import org.smpp.WrongSessionStateException;
 import org.smpp.pdu.PDUException;
@@ -12,10 +14,12 @@ import java.io.IOException;
 @SpringBootApplication
 public class ClientApplication {
 
-    public static void main(String[] args) throws PDUException, TimeoutException, WrongSessionStateException, IOException {
+    public static void main(String[] args) throws PDUException, TimeoutException, WrongSessionStateException, IOException, NotSynchronousException {
         SpringApplication.run(ClientApplication.class, args);
-        OpenSmppClient client = new OpenSmppClient();
-        client.sendSMS();
+//        OpenSmppClient client = new OpenSmppClient();
+//        client.sendSMS();
+        MultiTaskClient client = new MultiTaskClient();
+        client.sendMulti();
     }
 
 }
