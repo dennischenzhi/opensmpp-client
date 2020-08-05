@@ -6,6 +6,7 @@ import org.smpp.pdu.*;
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
+import java.math.BigInteger;
 
 public class OpenSmppClient {
 
@@ -38,6 +39,7 @@ public class OpenSmppClient {
             session = new Session(connection);
             System.out.println("Send bind request..."+request.debugString());
             BindResponse response = session.bind(request);
+
             if (response.getCommandStatus() == Data.ESME_ROK) {
                 System.out.println("Bind Succ ");
             } else {
@@ -73,7 +75,7 @@ public class OpenSmppClient {
         }
     }
 
-    public void sendSMS() throws IOException, WrongSessionStateException, TimeoutException, PDUException {
+    public void sendSMS() throws IOException, WrongSessionStateException, TimeoutException, PDUException, NotSynchronousException {
         systemId = getParam("systemId", systemId);
         password = getParam("password", password);
         host= getParam("host", host);
@@ -96,13 +98,29 @@ public class OpenSmppClient {
         request.setDestAddr((byte) 1,(byte)1,da);
         request.setShortMessage(content);
 
-
-
         SubmitSMResp submitSMResp = session.submit(request);
 
         System.out.println("submitSMResp messageId: "+submitSMResp.getMessageId());
         System.out.println("submitSMResp debug: "+submitSMResp.debugString());
+        PDU pdu = session.receive(300000);
+
+        if(pdu instanceof DeliverSM){
+            DeliverSM received = (DeliverSM) pdu;
+            if (received.getEsmClass() == 0) {                                                          // new message
+                System.out.println("RECEIVE NEW MESSAGE:" + received.debugString());
+                String MSG_SENDER = received.getSourceAddr().getAddress();
+                String SHORT_MSG = received.getShortMessage();
+            } else {                                                                                    // delivry Repport
+                System.out.println("RECEIVE NEW DELIVERED REPORT:" + received.debugString());
+                String MSG_ID = (new BigInteger(received.getReceiptedMessageId(), 16)) + "";
+                int MSG_STATUS = received.getMessageState();
+            }
+        }else{
+            System.out.println("----------------- FF pdu: " +pdu.debugString());
+        }
+
         if(session!=null)
             session.close();
+
     }
 }
