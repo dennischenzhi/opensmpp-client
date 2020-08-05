@@ -1,5 +1,8 @@
 package com.tp.sms.opensmpp.client.connector;
 
+import com.tp.sms.opensmpp.client.service.MultiTaskClient;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.smpp.Data;
 import org.smpp.Session;
 import org.smpp.TCPIPConnection;
@@ -16,6 +19,8 @@ public class SmppConnection {
     public static String host = "192.168.29.40";
     public static int port = 2775;
 
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmppConnection.class);
+    
     public static Session InitConnection() throws IOException, WrongSessionStateException {
         Session session =null;
 
@@ -34,20 +39,20 @@ public class SmppConnection {
                     new TCPIPConnection(host, port);
             //connection.setReceiveTimeout(BIND_TIMEOUT);
             session = new Session(connection);
-            System.out.println("Send bind request..."+request.debugString());
+            LOGGER.info("Send bind request..."+request.debugString());
             BindResponse response = session.bind(request);
 
             if (response.getCommandStatus() == Data.ESME_ROK) {
-                System.out.println("Bind Succ ");
+                LOGGER.info("Bind Succ ");
             } else {
-                System.out.println("Bind failed, code " + response.getCommandStatus());
+                LOGGER.info("Bind failed, code " + response.getCommandStatus());
             }
-            System.out.println("Bind response " + response.debugString());
-            System.out.println("Bind response body "+response.getBody().toString());
-            //System.out.println("Bind response system Id "+response.getSystemId());
+            LOGGER.info("Bind response " + response.debugString());
+            LOGGER.info("Bind response body "+response.getBody().toString());
+            //LOGGER.info("Bind response system Id "+response.getSystemId());
         } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-            System.out.println(ex.toString());
+            LOGGER.info(ex.getMessage());
+            LOGGER.info(ex.toString());
         }
 
         return session;

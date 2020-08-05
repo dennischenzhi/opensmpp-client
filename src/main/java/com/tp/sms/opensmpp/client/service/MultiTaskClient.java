@@ -2,6 +2,8 @@ package com.tp.sms.opensmpp.client.service;
 
 import com.tp.sms.opensmpp.client.connector.SmppConnection;
 import com.tp.sms.opensmpp.client.connector.SmppConnectionCounter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.smpp.*;
 import org.smpp.pdu.*;
 
@@ -16,6 +18,7 @@ import java.util.List;
 import java.util.Map;
 
 public class MultiTaskClient {
+    private static final Logger LOGGER = LoggerFactory.getLogger(MultiTaskClient.class);
 
     static BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
 
@@ -32,10 +35,10 @@ public class MultiTaskClient {
             connectorCounter.tryAdd();
             sendSMS();
             SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");//设置日期格式
-            System.out.println(df.format(new Date())+" Executor is starting the task by using "+connectorCounter.getConnectorId());// new Date()为获取当前系统时间
+            LOGGER.info(df.format(new Date())+" Executor is starting the task by using "+connectorCounter.getConnectorId());// new Date()为获取当前系统时间
             innerCounter++;
         }
-        System.out.println("Job Finish, Executor is using "+connectorCounter.getConnectorId()+" total run"+innerCounter);
+        LOGGER.info("Job Finish, Executor is using "+connectorCounter.getConnectorId()+" total run"+innerCounter);
     }
 
 
@@ -47,7 +50,7 @@ public class MultiTaskClient {
         try {
             value = keyboard.readLine();
         } catch (IOException e) {
-            System.out.println(e.getMessage());
+            LOGGER.info(e.getMessage());
             //event.write(e, "");
             //debug.write("Got exception getting a param. " + e);
         }
@@ -83,24 +86,9 @@ public class MultiTaskClient {
 
         SubmitSMResp submitSMResp = session.submit(request);
 
-        System.out.println("submitSMResp messageId: " + submitSMResp.getMessageId());
-        System.out.println("submitSMResp debug: " + submitSMResp.debugString());
-        PDU pdu = session.receive(300000);
-
-        if (pdu instanceof DeliverSM) {
-            DeliverSM received = (DeliverSM) pdu;
-            if (received.getEsmClass() == 0) {                                                          // new message
-                System.out.println("RECEIVE NEW MESSAGE:" + received.debugString());
-                String MSG_SENDER = received.getSourceAddr().getAddress();
-                String SHORT_MSG = received.getShortMessage();
-            } else {                                                                                    // delivry Repport
-                System.out.println("RECEIVE NEW DELIVERED REPORT:" + received.debugString());
-                String MSG_ID = (new BigInteger(received.getReceiptedMessageId(), 16)) + "";
-                int MSG_STATUS = received.getMessageState();
-            }
-        } else {
-            System.out.println("----------------- FF pdu: " + pdu.debugString());
-        }
+        LOGGER.info("submitSMResp messageId: " + submitSMResp.getMessageId());
+        LOGGER.info("submitSMResp debug: " + submitSMResp.debugString());
+        
 
         if (session != null)
             session.close();

@@ -1,9 +1,14 @@
 package com.tp.sms.opensmpp.client.connector;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
 public class SmppConnectionCounter {
+    private static final Logger LOGGER = LoggerFactory.getLogger(SmppConnectionCounter.class);
+    
     private Date entrySecond;
     private AtomicInteger cap;
     private AtomicInteger count;
@@ -59,14 +64,14 @@ public class SmppConnectionCounter {
             long millis = System.currentTimeMillis() % 1000;
             try {
                 Thread.sleep(1000-millis);
-                System.out.println("Connector Counter Max Cap, force to sleep");
+                LOGGER.info("Connector Counter Max Cap, force to sleep");
                 count.set(0);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }
         }else{
             count.addAndGet(1);
-            System.out.println("tryAdd succ, current counter: " +count);
+            LOGGER.info("tryAdd succ, current counter: " +count);
         }
 
         return true;
