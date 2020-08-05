@@ -1,5 +1,7 @@
 package com.tp.sms.opensmpp.client.service;
 
+import com.tp.sms.opensmpp.client.connector.SmppConnection;
+import com.tp.sms.opensmpp.client.connector.SmppConnectionCounter;
 import org.smpp.*;
 import org.smpp.pdu.*;
 
@@ -7,62 +9,35 @@ import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 public class MultiTaskClient {
 
     static BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
-    private String systemId = "cloudsmpp";
-    private String password = "cloud123";
-    private String host = "192.168.29.40";
-    private int port = 2775;
+
     private String oa = "Test";
     private String da = "85259846556";
     private String content = "SMPP Client By Java";
 
     public void sendMulti() throws PDUException, NotSynchronousException, TimeoutException, WrongSessionStateException, IOException {
+        Integer innerCounter = 0;
+        SmppConnectionCounter connectorCounter = new SmppConnectionCounter(4);
+
+
         for(int i=0;i<10;i++){
+            connectorCounter.tryAdd();
             sendSMS();
+            SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");//设置日期格式
+            System.out.println(df.format(new Date())+" Executor is starting the task by using "+connectorCounter.getConnectorId());// new Date()为获取当前系统时间
+            innerCounter++;
         }
+        System.out.println("Job Finish, Executor is using "+connectorCounter.getConnectorId()+" total run"+innerCounter);
     }
 
-    public Session InitConnection() throws IOException, WrongSessionStateException {
-        Session session =null;
-
-        try {
-            //byte value = (new Integer(52)).byteValue();
-            final BindRequest request = new BindTransciever();
-            request.setSystemId(systemId);
-            request.setPassword(password);
-            request.setInterfaceVersion((byte)52);
-            //request.setCommandId(0x00000009);
-            //request.setCommandStatus(0x00);
-            //request.setAddressRange((byte) 0,(byte) 0,null);
-
-
-            TCPIPConnection connection =
-                    new TCPIPConnection(host, port);
-            //connection.setReceiveTimeout(BIND_TIMEOUT);
-            session = new Session(connection);
-            System.out.println("Send bind request..."+request.debugString());
-            BindResponse response = session.bind(request);
-
-            if (response.getCommandStatus() == Data.ESME_ROK) {
-                System.out.println("Bind Succ ");
-            } else {
-                System.out.println("Bind failed, code " + response.getCommandStatus());
-            }
-            System.out.println("Bind response " + response.debugString());
-            System.out.println("Bind response body "+response.getBody().toString());
-            //System.out.println("Bind response system Id "+response.getSystemId());
-        } catch (Exception ex) {
-            System.out.println(ex.getMessage());
-            System.out.println(ex.toString());
-        }
-
-        return session;
-    }
 
     private String getParam(String prompt, String defaultValue) {
         String value = "";
@@ -100,7 +75,7 @@ public class MultiTaskClient {
         //private String da = "85259846556";
 
 
-        Session session = InitConnection();
+        Session session = SmppConnection.InitConnection();
         SubmitSM request = new SubmitSM();
         request.setSourceAddr((byte) 5, (byte) 0, oa);
         request.setDestAddr((byte) 1, (byte) 1, da);
