@@ -22,20 +22,24 @@ public class MultiTaskClient {
 
     static BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
 
-    private String oa = "Test";
-    private String da = "85259846556";
-    private String content = "SMPP Client By Java";
+    private String oa = "TP";
+    private String da = "8618851152111";
+    private String suffix_content = "分鐘內完成驗證";
+    private String prefix_content = "為本次登錄驗證的手機驗證碼，請在";
+    private String content ="";
 
-    public void sendMulti() throws PDUException, NotSynchronousException, TimeoutException, WrongSessionStateException, IOException {
+    public void sendMulti() throws PDUException, NotSynchronousException, TimeoutException, WrongSessionStateException, IOException, InterruptedException {
         Integer innerCounter = 0;
         SmppConnectionCounter connectorCounter = new SmppConnectionCounter(4);
 
 
         for(int i=0;i<10;i++){
             connectorCounter.tryAdd();
+            content=prefix_content+String.valueOf(i+1)+suffix_content;
             sendSMS();
             SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");//设置日期格式
             LOGGER.info(df.format(new Date())+" Executor is starting the task by using "+connectorCounter.getConnectorId());// new Date()为获取当前系统时间
+            Thread.sleep(90000);
             innerCounter++;
         }
         LOGGER.info("Job Finish, Executor is using "+connectorCounter.getConnectorId()+" total run"+innerCounter);
@@ -82,8 +86,9 @@ public class MultiTaskClient {
         SubmitSM request = new SubmitSM();
         request.setSourceAddr((byte) 5, (byte) 0, oa);
         request.setDestAddr((byte) 1, (byte) 1, da);
-        request.setShortMessage(content);
-
+        request.setDataCoding((byte)8);
+        request.setShortMessage(content,"UTF-16BE");
+        LOGGER.info("SubmitSM debug: "+request.debugString());
         SubmitSMResp submitSMResp = session.submit(request);
 
         LOGGER.info("submitSMResp messageId: " + submitSMResp.getMessageId());

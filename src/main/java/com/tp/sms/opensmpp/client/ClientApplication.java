@@ -14,12 +14,12 @@ import java.io.IOException;
 @SpringBootApplication
 public class ClientApplication {
 
-    public static void main(String[] args) throws PDUException, TimeoutException, WrongSessionStateException, IOException, NotSynchronousException {
+    public static void main(String[] args) throws PDUException, TimeoutException, WrongSessionStateException, IOException, NotSynchronousException, InterruptedException {
         SpringApplication.run(ClientApplication.class, args);
-//        OpenSmppClient client = new OpenSmppClient();
-//        client.sendSMS();
-        MultiTaskClient client = new MultiTaskClient();
-        client.sendMulti();
+        OpenSmppClient client = new OpenSmppClient();
+        client.sendSMS();
+//        MultiTaskClient client = new MultiTaskClient();
+//        client.sendMulti();
     }
 
 }

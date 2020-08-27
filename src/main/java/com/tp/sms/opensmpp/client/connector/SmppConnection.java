@@ -14,10 +14,15 @@ import org.smpp.pdu.BindTransciever;
 import java.io.IOException;
 
 public class SmppConnection {
-    public static String systemId = "cloudsmpp";
-    public static String password = "cloud123";
-    public static String host = "192.168.29.40";
-    public static int port = 2775;
+//    public static String systemId = "cloudsmpp";
+//    public static String password = "cloud123";
+//    public static String host = "192.168.29.40";
+//    public static int port = 2775;
+
+    private static String systemId = "TPTLCMI01";
+    private static String password = "4GeppuHQ";
+    private static String host = "223.118.36.5";
+    private static int port = 2775;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SmppConnection.class);
     
