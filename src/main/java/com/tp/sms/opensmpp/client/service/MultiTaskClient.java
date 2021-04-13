@@ -6,6 +6,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.smpp.*;
 import org.smpp.pdu.*;
+import org.smpp.util.ByteBuffer;
 
 import java.io.BufferedReader;
 import java.io.IOException;
@@ -23,15 +24,15 @@ public class MultiTaskClient {
     static BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
 
     private String oa = "Test";
-    private String da = "85259846556";
-    private String content = "SMPP Client By Java";
+    private String da = "85261450947";
+    private String content = "Long message is really a long message";
 
     public void sendMulti() throws PDUException, NotSynchronousException, TimeoutException, WrongSessionStateException, IOException {
         Integer innerCounter = 0;
         SmppConnectionCounter connectorCounter = new SmppConnectionCounter(4);
 
 
-        for(int i=0;i<10;i++){
+        for(int i=0;i<1;i++){
             connectorCounter.tryAdd();
             sendSMS();
             SimpleDateFormat df = new SimpleDateFormat("yyyy-MM-dd HH:mm:ss:SSS");//设置日期格式
@@ -82,6 +83,13 @@ public class MultiTaskClient {
         SubmitSM request = new SubmitSM();
         request.setSourceAddr((byte) 5, (byte) 0, oa);
         request.setDestAddr((byte) 1, (byte) 1, da);
+        if(content.length() < 160){
+            request.setShortMessage(content);
+        }else{
+            ByteBuffer byteBuffer = new ByteBuffer();
+            byteBuffer.appendString(content, Data.ENC_UTF8);
+            request.setMessagePayload(byteBuffer);
+        }
         request.setShortMessage(content);
 
         SubmitSMResp submitSMResp = session.submit(request);

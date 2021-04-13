@@ -14,9 +14,9 @@ import org.smpp.pdu.BindTransciever;
 import java.io.IOException;
 
 public class SmppConnection {
-    public static String systemId = "cloudsmpp";
-    public static String password = "cloud123";
-    public static String host = "192.168.29.40";
+    public static String systemId = "testcz";
+    public static String password = "19850416";
+    public static String host = "47.90.120.242";
     public static int port = 2775;
 
     private static final Logger LOGGER = LoggerFactory.getLogger(SmppConnection.class);

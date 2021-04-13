@@ -1,25 +1,42 @@
 package com.tp.sms.opensmpp.client.service;
 
+import com.google.common.base.CharMatcher;
 import org.smpp.*;
 import org.smpp.pdu.*;
+import org.smpp.util.ByteBuffer;
+import org.smpp.util.NotEnoughDataInByteBufferException;
 import org.smpp.util.Queue;
+import org.smpp.util.TerminatingZeroNotFoundException;
 
 import java.io.BufferedReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.math.BigInteger;
+import java.util.Random;
 
 public class OpenSmppClient {
 
     static BufferedReader keyboard = new BufferedReader(new InputStreamReader(System.in));
-    private String systemId = "cloudsmpp";
-    private String password = "cloud123";
-    private String host = "192.168.29.40";
-    private int port = 2775;
-    private String oa = "Test";
-    private String da = "85259846556";
-    private String content = "SMPP Client By Java";
+    private String systemId = "800001";
+    private String password = "CHcxZJ";
+    private String host = "47.111.170.128";
+    private int port = 7891;
+    private String oa = "";
+    private String da = "13951969290";
+    //private String content = "【京东】验证码12345678901234567890123456789012345678901234567890123456789012345678901234567890123456789001234567890012345678900123456789001234567890";
+    private String content = "Verification Code:1234567890123456789012345678901234567890123456789012345678901234567890123456789012345678900123456789012345678901234567890123456789001234567890012345678900123456789001234567890";
+    Session session = null;
 
+    public OpenSmppClient() throws IOException, WrongSessionStateException {
+        systemId = getParam("systemId", systemId);
+        password = getParam("password", password);
+        host= getParam("host", host);
+        port= Integer.valueOf(getParam("port", String.valueOf(port)));
+        oa = getParam("oa", oa);
+        da = getParam("da", da);
+        content = getParam("content", content);
+        session = InitConnection();
+    }
     public Session InitConnection() throws IOException, WrongSessionStateException {
         Session session =null;
 
@@ -78,34 +95,111 @@ public class OpenSmppClient {
         }
     }
 
-    public void sendSMS() throws IOException, WrongSessionStateException, TimeoutException, PDUException, NotSynchronousException {
-        systemId = getParam("systemId", systemId);
-        password = getParam("password", password);
-        host= getParam("host", host);
-        port= Integer.valueOf(getParam("port", String.valueOf(port)));
-        oa = getParam("oa", oa);
-        da = getParam("da", da);
-        content = getParam("content", content);
-        //private String systemId = "cloudsmpp";
+    public void sendSMS() throws IOException, WrongSessionStateException, TimeoutException, PDUException, NotSynchronousException, NotEnoughDataInByteBufferException, TerminatingZeroNotFoundException {
 
-        //private String password = "cloud123";
-        //private String host = "192.168.29.40";
-        //private int port = 2775;
-        //private String oa = "Test";
-        //private String da = "85259846556";
-
-
-        Session session = InitConnection();
         SubmitSM  request = new SubmitSM();
-        request.setSourceAddr((byte) 5,(byte)0,oa);
+
+        //content is chinese or not
+        boolean isChinese = false;
+        if (CharMatcher.ascii().matchesAllOf(content)) {
+            isChinese=false;
+        } else {
+            isChinese=true;
+        }
+
+        //set OA is numeric or alpha OA
+        try{
+            if(oa==null){
+                request.setSourceAddr((byte) 1,(byte)1,oa);
+            }else{
+                Long.parseLong(oa);
+                request.setSourceAddr((byte) 1,(byte)1,oa);
+            }
+
+        }catch (Exception ex){
+            request.setSourceAddr((byte) 5,(byte)0,oa);
+        }
+
         request.setDestAddr((byte) 1,(byte)1,da);
-        request.setShortMessage(content);
-        request.setRegisteredDelivery((byte)1);
 
-        SubmitSMResp  submitSMResp  = session.submit(request);
+        //chinese one message = 70
+        //chinese long message = 67
+        //english one message =160
+        //english long message =153
+        //https://stackoverflow.com/questions/21098643/smpp-submit-long-message-and-message-split
+        int msgLen = content.length();
+        if((content.length()>70&&isChinese)||(content.length()>160&&!isChinese)){
+            //how many split to set
+            int splitNum = isChinese?content.length()/67 + 1:content.length()/153 + 1;
 
-        System.out.println("submitSMResp messageId: "+submitSMResp.getMessageId());
-        System.out.println("submitSMResp debug: "+submitSMResp.debugString());
+            //identifier
+            Random random = new Random();
+            int ends = random.nextInt(99);
+
+
+
+            for(int i=1;i<=splitNum;i++){
+                String splittedContent = null;
+                if(isChinese){
+                    if(i*67+1>=content.length()){
+                        splittedContent = content.substring((i-1)*67,content.length());
+                    }else{
+                        splittedContent = content.substring((i-1)*67,i*67);
+                    }
+                }else{
+                    if(i*153+1>=content.length()){
+                        splittedContent = content.substring((i-1)*153,content.length());
+                    }else{
+                        splittedContent = content.substring((i-1)*153,i*153);
+                    }
+                }
+
+                ByteBuffer ed = new ByteBuffer();
+                ed.appendByte((byte) 5); // UDH Length
+                ed.appendByte((byte) 0x00); // IE Identifier
+                ed.appendByte((byte) 3); // IE Data Length
+                ed.appendByte((byte) ends); // concat reference number
+                ed.appendByte((byte) splitNum); // concat number segments [1]
+                ed.appendByte((byte) i); // concat sequence number [2]
+
+                if(isChinese){
+                    ed.appendString(splittedContent,Data.ENC_UTF16_BE);
+                    request.setDataCoding((byte)8);
+                }else {
+                    ed.appendString(splittedContent, Data.ENC_GSM7BIT);
+                    request.setDataCoding((byte)0);
+                }
+
+                request.setShortMessageData(ed);
+                request.setEsmClass((byte) Data.SM_UDH_GSM);
+                request.setRegisteredDelivery((byte)1);
+
+
+
+                SubmitSMResp  submitSMResp  = session.submit(request);
+
+                //System.out.println("submitSMResp messageId: "+submitSMResp.getMessageId());
+                //System.out.println("submitSMResp debug: "+submitSMResp.debugString());
+                }
+
+        }else{
+
+            if(isChinese) {
+                request.setDataCoding((byte) 8);
+                request.setShortMessage(content,Data.ENC_UTF16_BE);
+            }else {
+                request.setDataCoding((byte) 0);
+                request.setShortMessage(content,Data.ENC_GSM7BIT);
+            }
+            request.setRegisteredDelivery((byte)1);
+
+            SubmitSMResp  submitSMResp  = session.submit(request);
+        }
+
+
+
+
+
 //        PDU pdu = session.receive();
 //
 //        if(pdu instanceof DeliverSM){
@@ -124,8 +218,8 @@ public class OpenSmppClient {
 //            System.out.println("----------------- FF pdu: " +pdu.debugString());
 //        }
 
-        if(session!=null)
-            session.close();
+//        if(session!=null)
+//            session.close();
 
     }
 
